@@ -19,7 +19,7 @@ with st.form("datos_paciente"):
     with col2:
         historia = st.text_input("N° Historia Clínica")
         fecha = st.date_input("Fecha del estudio", value=datetime.today())
-        cirugia = st.text_area("Tipo de cirugía", height=60)
+        cirugia = st.text_area("Tipo de cirugía", height=80)  # altura mínima permitida
     submitted_1 = st.form_submit_button("Guardar datos del paciente")
 
 # --- Sección 2: Informe ecocardiográfico ---
@@ -36,7 +36,8 @@ with st.form("datos_eco"):
 
     hallazgos = st.multiselect(
         "Hallazgos adicionales:",
-        ["CIA tipo ostium secundum", "CIV membranosa", "Insuficiencia mitral severa", "Trombo auricular izquierdo", "Derrame pericárdico severo"]
+        ["CIA tipo ostium secundum", "CIV membranosa", "Insuficiencia mitral severa",
+         "Trombo auricular izquierdo", "Derrame pericárdico severo"]
     )
 
     informe_generado = st.form_submit_button("Generar informe")
@@ -52,37 +53,4 @@ def generar_html():
     <strong>Fecha:</strong> {fecha.strftime("%d-%m-%Y")}<br>
     <strong>Tipo de cirugía:</strong> {cirugia}</p>
     <hr>
-    <h3>Resumen ecocardiográfico</h3>
-    <ul>
-        <li><strong>LVEF:</strong> {lvef}</li>
-        <li><strong>Cavidades:</strong> {cavidades}</li>
-        <li><strong>Valvulopatías:</strong> {valvulas}</li>
-        <li><strong>Septo IV:</strong> {septo_iv}</li>
-        <li><strong>Función diastólica:</strong> {funcion_diastolica}</li>
-        <li><strong>Derrame pericárdico:</strong> {derrame}</li>
-        <li><strong>Gradiente AV:</strong> {gradiente_av} mmHg</li>
-    </ul>
-    """
-    if hallazgos:
-        html += "<h4>Hallazgos adicionales:</h4><ul>"
-        for h in hallazgos:
-            html += f"<li>{h}</li>"
-        html += "</ul>"
-    return html
-
-# --- Visualizar informe ---
-if informe_generado:
-    st.success("✅ Informe generado")
-    informe_html = generar_html()
-    st.markdown(informe_html, unsafe_allow_html=True)
-
-    if st.button("📄 Mostrar informe en texto"):
-        st.text(informe_html.replace("<br>", "\n").replace("<li>", "- ").replace("</li>", "").replace("<ul>", "").replace("</ul>", "").replace("</p>", "\n"))
-
-    # --- Descargar PDF ---
-    if st.button("⬇️ Descargar PDF"):
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
-            pdfkit.from_string(informe_html, tmp_pdf.name)
-            with open(tmp_pdf.name, "rb") as f:
-                st.download_button("Descargar informe PDF", f, file_name="informe_ete.pdf", mime="application/pdf")
-            os.unlink(tmp_pdf.name)
+    <h3>Resumen ecocardiográfico</h
