@@ -3,22 +3,22 @@ from datetime import datetime
 import pdfkit
 import tempfile
 import os
+import uuid
 
+# --- Configuración inicial ---
 st.set_page_config(page_title="Informe ETE Intraoperatoria", layout="centered")
 st.title("🫀 Informe de Ecocardiografía Transesofágica Intraoperatoria")
 
-# --- Inicializar variables ---
-paciente_datos = {}
-eco_datos = {}
+# --- Asegurar carpeta para historial ---
+os.makedirs("historial_informes", exist_ok=True)
 
-# --- Sección 1: Datos del paciente ---
+# --- Formulario de datos del paciente ---
 st.header("🧑‍⚕️ Datos del paciente")
-
 with st.form(key="form_paciente"):
     col1, col2 = st.columns(2)
     with col1:
         nombre = st.text_input("Nombre completo")
-        edad = st.number_input("Edad", min_value=0, max_value=120, step=1)
+        edad = st.number_input("Edad", min_value=0, max_value=120)
         sexo = st.selectbox("Sexo", ["Masculino", "Femenino"])
     with col2:
         historia = st.text_input("N° Historia Clínica")
@@ -26,6 +26,7 @@ with st.form(key="form_paciente"):
         cirugia = st.text_area("Tipo de cirugía", height=100)
     submitted_paciente = st.form_submit_button("Guardar datos del paciente")
 
+# --- Guardar datos del paciente si se envían ---
 if submitted_paciente:
     paciente_datos = {
         "nombre": nombre,
@@ -35,11 +36,10 @@ if submitted_paciente:
         "fecha": fecha,
         "cirugia": cirugia
     }
-    st.success("✅ Datos del paciente guardados")
+    st.success("✅ Datos del paciente guardados correctamente.")
 
-# --- Sección 2: Informe ecocardiográfico ---
+# --- Formulario del informe ecocardiográfico ---
 st.header("📋 Datos ecocardiográficos")
-
 with st.form(key="form_eco"):
     lvef = st.select_slider("Fracción de eyección (LVEF)", options=["<30%", "30-40%", "40-50%", "50-60%", ">60%"])
     cavidades = st.text_area("Tamaño y función de cavidades", height=100)
@@ -55,18 +55,21 @@ with st.form(key="form_eco"):
          "Trombo auricular izquierdo", "Derrame pericárdico severo"]
     )
 
+    operador = st.text_input("Nombre del operador (firma digital)")
     submitted_eco = st.form_submit_button("Generar informe")
 
-# --- Generar informe HTML ---
-def generar_html(p, e):
+# --- Función para generar HTML ---
+def generar_html(p, e, operador):
+    hora = datetime.now().strftime("%H:%M:%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     html = f"""
-    <h2>Informe Ecocardiografía Transesofágica Intraoperatoria</h2>
+    <h2>Informe de Ecocardiografía Transesofágica Intraoperatoria</h2>
     <p><strong>Paciente:</strong> {p['nombre']}<br>
     <strong>Edad:</strong> {p['edad']}<br>
     <strong>Sexo:</strong> {p['sexo']}<br>
     <strong>Historia Clínica:</strong> {p['historia']}<br>
-    <strong>Fecha:</strong> {p['fecha'].strftime("%d-%m-%Y")}<br>
-    <strong>Tipo de cirugía:</strong> {p['cirugia']}</p>
+    <strong>Fecha:</strong> {p['fecha'].strftime('%d-%m-%Y')}<br>
+    <strong>Cirugía:</strong> {p['cirugia']}</p>
     <hr>
     <h3>Resumen ecocardiográfico</h3>
     <ul>
@@ -84,11 +87,13 @@ def generar_html(p, e):
         for h in e["hallazgos"]:
             html += f"<li>{h}</li>"
         html += "</ul>"
+
+    html += f"<p><em>Informe generado por:</em> {operador}<br><em>Fecha y hora:</em> {timestamp}</p>"
     return html
 
-# --- Mostrar informe si se generó ---
-if submitted_eco and paciente_datos:
-    eco_datos = {
+# --- Procesamiento del informe ---
+if submitted_eco and submitted_paciente and operador:
+    datos_eco = {
         "lvef": lvef,
         "cavidades": cavidades,
         "valvulas": valvulas,
@@ -99,23 +104,23 @@ if submitted_eco and paciente_datos:
         "hallazgos": hallazgos
     }
 
-    st.success("✅ Informe generado correctamente")
-    informe_html = generar_html(paciente_datos, eco_datos)
+    informe_html = generar_html(paciente_datos, datos_eco, operador)
     st.markdown(informe_html, unsafe_allow_html=True)
 
+    # --- Mostrar como texto plano ---
     if st.button("📄 Mostrar informe como texto"):
-        informe_txt = (
-            f"Informe ETE Intraoperatoria\n"
-            f"Paciente: {paciente_datos['nombre']}\nEdad: {paciente_datos['edad']}\n"
-            f"Sexo: {paciente_datos['sexo']}\nHistoria Clínica: {paciente_datos['historia']}\n"
-            f"Fecha: {paciente_datos['fecha'].strftime('%d-%m-%Y')}\nCirugía: {paciente_datos['cirugia']}\n\n"
-            f"LVEF: {eco_datos['lvef']}\nCavidades: {eco_datos['cavidades']}\nValvulopatías: {eco_datos['valvulas']}\n"
-            f"Septo IV: {eco_datos['septo_iv']}\nFunción diastólica: {eco_datos['funcion_diastolica']}\n"
-            f"Derrame: {eco_datos['derrame']}\nGradiente AV: {eco_datos['gradiente_av']} mmHg\n"
-            f"Hallazgos: {', '.join(eco_datos['hallazgos']) if eco_datos['hallazgos'] else 'Ninguno'}"
-        )
-        st.text(informe_txt)
+        texto = informe_html.replace("<br>", "\n").replace("<li>", "- ").replace("</li>", "").replace("<ul>", "").replace("</ul>", "").replace("<p>", "").replace("</p>", "\n").replace("<em>", "").replace("</em>", "")
+        st.text(texto)
 
+    # --- Guardar como TXT en historial ---
+    uid = uuid.uuid4().hex[:6]
+    filename = f"historial_informes/Informe_{paciente_datos['nombre'].replace(' ', '_')}_{uid}.txt"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(texto)
+
+    st.success(f"✅ Informe guardado localmente como `{filename}`")
+
+    # --- Generar PDF y descargar ---
     if st.button("⬇️ Descargar PDF"):
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
