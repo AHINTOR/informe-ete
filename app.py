@@ -9,7 +9,7 @@ import base64
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Informe Ecocardiografía Transesofágica",
+    page_title="Informe Ecocardiografía Transesofágica Intraoperatoria",
     page_icon="🫀",
     layout="wide"
 )
@@ -318,4 +318,4 @@ Médico informante: {st.session_state.study_data.get('medico', 'No especificado'
 
 # Footer
 st.markdown("---")
-st.markdown("*Aplicación para generación de informes de ecocardiografía transesofágica intraoperatoria*")
+st.markdown("*Aplicación para generación de informes de ecocardiografía transesofágica intraoperatoria, hecho por Jorge, Angel, Jenny, Rolando y Anyella*")
